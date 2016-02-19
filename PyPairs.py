@@ -1372,9 +1372,10 @@ class MockPairs(object):
         self.exact_pairs = []
         self.exact_pairs_sum = []
         # Remove both self-matches and matches below min separation
+        print('Finding initial pairs:')
         with ProgressBar(len(sample)) as bar:
-            print('Finding initial pairs:')
             for i, primary in enumerate(sample):
+                bar.update()
                 if initial_pairs[i]:
                 # Sort so it matches brute force output
                     initial_pairs[i] = np.sort(initial_pairs[i])
@@ -1395,18 +1396,18 @@ class MockPairs(object):
                         self.exact_pairs.append(initial_pairs[i][pair])
                         self.exact_pairs_sum.append(len(initial_pairs[i][pair]))
                         self.trimmed.append(primary)
-                bar.update()
+                
             # Delete self-matches and matches within minsep
         # Trim pairs
-        self.trimmed_pairs = np.array(np.copy(self.exact_pairs),dtype='object')
-        print self.trimmed_pairs.dtype
+        self.trimmed_pairs = list(self.exact_pairs)
+        #print self.trimmed_pairs.dtype
         
         Nduplicates = 0
-
+        
+        print('Removing duplicate pairs:')
         with ProgressBar(len(self.trimmed)) as bar:
-            print('Removing duplicate pairs:')
             for i, primary in enumerate(self.trimmed):
-                for j, secondary in enumerate(self.exact_pairs[i]):
+                for j, secondary in enumerate(self.trimmed_pairs[i]):
                     if secondary in self.trimmed:
                     
                         Nduplicates += 1 # Counter to check if number seems sensible
@@ -1419,25 +1420,41 @@ class MockPairs(object):
                                 self.trimmed_pairs[i] = np.delete(self.exact_pairs[i], j)
                                 #self.trimmed_pairs[i] = np.array([None])
                             except:
-                                self.trimmed_pairs = np.delete(self.trimmed_pairs, i)
-                                self.trimmed = np.delete(self.trimmed, i)
+                                print 'needed'
+                                #k = np.where(self.trimmed_pairs == primary)[0]
+                                #self.trimmed_pairs = np.delete(self.trimmed_pairs, k)
+                                #k = np.where(self.trimmed == primary)[0][0]
+                                #self.trimmed = np.delete(self.trimmed, k)
                         else:
                             try:
                                 k = np.where(self.trimmed == secondary)[0][0]
-                                print k
+                                #print k
                                 index = np.where(self.exact_pairs[k] == primary)[0][0]
-                                print index
+                                #print index
                                 self.trimmed_pairs[k] = np.delete(self.exact_pairs[k], index)
                             except:
-                                k = np.where(self.trimmed == secondary)[0]
-                                print k
-                                self.trimmed_pairs = np.delete(self.trimmed_pairs,k)
+                                print 'needed'
+                                #k = np.where(self.trimmed_pairs == primary)[0]
+                                #self.trimmed_pairs = np.delete(self.trimmed_pairs,k)
                                 
                 bar.update()
 
+        """
+        Npairs = []
+        for gal in self.trimmed_pairs:
+            try:
+                Npairs.append(len(gal))
+            except TypeError:
+                # Check is int
+                if type(gal) == int:
+                    Npairs.append(1)
+        self.Npairs = np.array(Npairs)
+        """
         self.Npairs = np.array([len(self.trimmed_pairs[gal]) for gal in range(len(self.trimmed))])
         self.Npairs_total = np.sum(self.Npairs)
         self.Ninitial = float(len(sample))
+        self.masses = masses
+        print('\n')
         
         self.fm = self.Npairs_total / self.Ninitial
 
